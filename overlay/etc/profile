@@ -1,0 +1,130 @@
+#!/bin/sh
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+# --------------------------------------------------------
+# configure prompt
+# ----------------------------------------------------------
+if [ "$PS1" ]; then
+	if [ "`id -u`" -eq 0 ]; then
+		export PS1='hydra#>'
+	else
+		export PS1='hydra$>'
+	fi
+fi
+
+export PAGER='/bin/more'
+export EDITOR='/bin/vi'
+
+# -----------------------------------------------------
+# Source configuration files from /etc/profile.d
+# -------------------------------------------------------
+for i in /etc/profile.d/*.sh ; do
+	if [ -r "$i" ]; then
+		. $i
+	fi
+done
+unset i
+
+
+# -------------------------------------------------------
+# Wifi configure
+# ------------------------------------------------------
+#echo "interface wlan0" > /etc/dhcpcd.conf
+#echo "  static ip_address=192.168.2.1/24" >> /etc/dhcpcd.conf
+#echo "  nohook wpa_supplicant" >> /etc/dhcpcd.conf
+
+#service dhcpd restart
+
+# -------------------------------------------------------
+# DHCP (dnsmasq) configure
+# ------------------------------------------------------
+#echo "interface=wlan0" > /etc/dnsmasq.conf
+#echo "  dhcp-range=192.168.2.2,192.168.2.5,255.255.255.0,24h" >> /etc/dnsmasq.conf
+
+# -------------------------------------------------------
+# Hostapd configure
+# ------------------------------------------------------
+#echo "interface=wlan0" > /etc/hostapd/hostapd.conf
+#echo "driver=nl80211" >> /etc/hostapd/hostapd.conf
+#echo "ssid=hydraak" >> /etc/hostapd/hostapd.conf
+#echo "hw_mode=g" >> /etc/hostapd/hostapd.conf
+#echo "channel=" >> /etc/hostapd/hostapd.conf
+#echo "wmm_enabled=0" >> /etc/hostapd/hostapd.conf
+#echo "macaddr_acl=0" >> /etc/hostapd/hostapd.conf
+#echo "auth_algs=1" >> /etc/hostapd/hostapd.conf
+#echo "ignore_broadcast_ssid=0" >> /etc/hostapd/hostapd.conf
+#echo "wpa=2" >> /etc/hostapd/hostapd.conf
+#echo "wpa_passphrase=1234598765" >> /etc/hostapd/hostapd.conf
+#echo "wpa_key_mgmt=WPA-PSK" >> /etc/hostapd/hostapd.conf
+#echo "wpa_pairwise=TKIP" >> /etc/hostapd/hostapd.conf
+#echo "rsn_pairwise=CCMP" >> /etc/hostapd/hostapd.conf
+
+#sed -i 's/#DAEMON_CONF="/etc/hostapd/hostapd.conf"/DAEMON_CONF="/etc/hostapd/hostapd.conf"/' /etc/default/hostapd
+
+# ---------------------------------------------------------
+# Add IP Tables
+# ----------------------------------------------------------
+
+# iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# iptables-restore < /etc/iptables.ipv4.nat
+
+# iptables-restore < /etc/iptables.ipv4.nat
+
+# ---------------------------------------------------------
+# Aliases
+# ---------------------------------------------------------
+alias cls=clear
+alias ll="ls -lah"
+alias md=mkdir
+
+
+
+# ---------------------------------------------
+# run gpiod with default cponfigurations
+# ---------------------------------------------
+pigpiod
+
+# --------------------------------------------
+# Wellcome message
+# --------------------------------------------
+echo '|------------------------------------------------------------------------------|'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                                                                              |'
+echo '|                        p                             a                       |'
+echo '|                        0#DWw                     WKKBH                       |'
+echo '|                        ]]BKNNBB              #B#NKKENh                       |'
+echo '|                        ]]KKKKKN]   vw]Nap   $KKKKKKNNH                       |'
+echo '|                L*zQa;pK]KDMjKKN]   ]#BKNN   $KKKHIDNNKbpyJN;                 |'
+echo '|              ;w$PE2m#N#N0BKKL]K#yjK#0KKNN#my$KK*0KBB#N$NwQ3(ZwpL             |'
+echo '|          a#KQa#KKKEm#KKMMS$KN#KKpA0K#KKK#BKI#KNw#BQMM#DNmEKNKNNBK$wa         |'
+echo '|       a#N#K#KBPMSa#KBUpKUKBh]KKKNN#KKKKKNKKNKKKD|BRUK@2DRNw2MKKBBKNM#w       |'
+echo '|     HL0B0KKNbQ]###NKKKKKKKNNKMKMKMKKKMBKKMBKKKMKKKKKKKKKK#NNN{@pKKKKBDp;     |'
+echo '|    K]KBB##KNKKKKNDDNKNKKKKKKKHKHKNY#KhKH#HBWKR#/KKKKKKNNKDD#KKRKNNNKKNBN$    |'
+echo '|    XNKBBKPSL]KBKKKBBH   KKKKKWKWKKwKKwN#KWKNKKKN]KKKN `?KBNKKBKN*?58KKKNM    |'
+echo '|     HL     /HM\:KM#       KKKKKKKKKKKKKKKKKKKKKKKKKDS   *VKKH*XNHL     M     |'
+echo '|          /a#Q yMHH      KKKKKKKK  DN]KKKKQM  KKKKKKKNh    KKK# 2NN|          |'
+echo '|     /KKKKM    KKKN      KKKKKKKK  9KDKK$WK   KKKKKKKNh    ]KKK    MKMKM\     |'
+echo '|             HHKMM       KKKKKKK   1N0]DN#N   ]KKKKKNNh     7M?LL             |'
+echo '|                          KKMKKK   ]BBKKKKN   ]KNKKKmNh                       |'
+echo '|                          BKKKKK   ]KKKKKKN   ]KKKNKNKN                       |'
+echo '|                             KKK    ]KKKKN    ]KKM\*YN                        |'
+echo '|                             *9K     KKKKL    ]R\`                            |'
+echo '|                               1     KKKBH    *                               |'
+echo '|                                     ?KKH                                     |'
+echo '|------------------------------------------------------------------------------|'
+echo
+echo "-------------------- <<<~ Wellcome to $hostname ~>>> ---------------------------"
+
+
+
+# --------------------------------------------------------
+# Set Date
+# --------------------------------------------------------
+date -s 2019.3.3-11:59:59
+
