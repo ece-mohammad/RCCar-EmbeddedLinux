@@ -2,7 +2,7 @@
 
 import time
 import logging as log
-from GPIOLIB import gpiolib as gpio
+import gpiolib as gpio
 
 # -------------------------------- Error codes ---------------------------------
 
@@ -128,12 +128,13 @@ class UltrasonicSensor(object):
                     pass
 
                 fall = time.time()
+                delta = rise - fall
 
-                if(rise - fall) <= (self._min_time + 2e5):
+                if delta <= (self._min_time + 2e5):
 
                     log.debug("Object is too close to the sensor!")
 
-                elif (rise - fall) >= (self._max_time + 2e5):
+                elif delta >= (self._max_time + 2e5):
 
                     log.debug("Object is too far from the sensor!")
 
@@ -166,7 +167,7 @@ class UltrasonicSensor(object):
     @classmethod
     def log_config(cls, stream, **kwargs):
         verbosity = kwargs.get("verbosity", QUIET)
-        filename = kwargs.get("filename", ".ultrasonic")
+        filename = kwargs.get("filename", ".ultrasonic_log")
 
         # logger for debugging
         if verbosity == VERBOSE:
@@ -203,19 +204,23 @@ class UltrasonicSensor(object):
 
 if __name__ == '__main__':
 
+    import math
+
     p0 = gpio.GPIO_Pin(5, gpio.PWM)
     p0.pwm_generate(1, 50)
 
     us = UltrasonicSensor(max_distance=400)
     us.init_ultrasonic(trig_pin=26, echo_pin=19)
 
+    normalize = lambda x: round(x, 2)
+
     count = 0
     while count < 20:
 
-        res = us.get_distance()
+        res = normalize(us.get_distance())
         print("Distance: {} cm".format(res))
 
-        time.sleep(1)
+        time.sleep(.5)
         count += 1
 
     us.de_init()

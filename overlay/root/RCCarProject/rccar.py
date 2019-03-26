@@ -3,8 +3,8 @@
 import logging as log
 from math import ceil
 
-from MotorControl import motor_controller as motor
-from Ultrasonic import ultrasonic
+import motor_controller as motor
+import ultrasonic
 
 # ---------------- Logging/Debug configurations ---------------
 
@@ -44,6 +44,9 @@ TURN_LEFT = 5
 
 # ------------------------------ RC Car Controller -----------------------------
 
+# TODO :: Find integration problem!!
+# TODO :: 1 - Ultrasonic reads 0
+# TODO :: 2 - Motors are not working properly
 
 class RCCar(object):
 
@@ -59,11 +62,10 @@ class RCCar(object):
         self._min_speed = kwargs.get("motor_min_speed", 30)
         self._turn_rate = kwargs.get("car_turn_rate", 50)
         self._rel_speed = 0
-        self._state = STOPPED
+        self._state = UNINITIALIZED
         self._direction = None
 
         self._distance = 0
-        self._ultrasonic_handler = None
 
         self.right_motor = motor.MotorControl(min_speed=kwargs.get("motor_min_speed", 30))
         self.left_motor = motor.MotorControl(min_speed=kwargs.get("motor_min_speed", 30))
@@ -73,6 +75,7 @@ class RCCar(object):
     def initialize(self):
 
         err_code = SUCCESS
+
         left_motor = self.right_motor.init_motor(self._right_motor_pin_1, self._right_motor_pin_2)
         right_motor = self.left_motor.init_motor(self._left_motor_pin_1, self._left_motor_pin_2)
         ranger = self.ultrasonic.init_ultrasonic(trig_pin=self._ultrasonic_trig_pin, echo_pin=self._ultrasonic_echo_pin)
@@ -110,10 +113,12 @@ class RCCar(object):
             self.right_motor.deinit_motor()
             self.left_motor.deinit_motor()
             self.ultrasonic.de_init()
+            self._state = UNINITIALIZED
 
         else:
 
             err_code = ERR_ERROR
+            log.error("Failed to deinit car modules! Car modules are already uninitialized!")
 
         return err_code
 
@@ -144,31 +149,37 @@ class RCCar(object):
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
+                log.debug("Moving car in forward direction!")
 
             elif direction == BACKWARD:
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=speed)
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=speed)
+                log.debug("Moving car in backwards direction!")
 
             elif direction == ROTATE_RIGHT:
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._min_speed)
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._min_speed)
+                log.debug("Rotating car to the right!")
 
             elif direction == ROTATE_LEFT:
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._min_speed)
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._min_speed)
+                log.debug("Rotating car to the left!")
 
             elif direction == TURN_RIGHT:
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=int(speed * (self._turn_rate / 100.0)))
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
+                log.debug("Turning car to the right!")
 
             elif direction == TURN_LEFT:
 
                 self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
                 self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=int(speed * (self._turn_rate / 100.0)))
+                log.debug("Turning car to the left!")
 
             else:
 
@@ -192,7 +203,7 @@ class RCCar(object):
             self._turn_rate = turn_rate
             log.debug("Changed turn rate to: {}!".format(speed))
 
-        if self._state != STOPPED or self._state != UNINITIALIZED:
+        if (self._state != STOPPED and self._state != UNINITIALIZED) and self._direction:
             self.move(self._direction)
 
         return err_code
@@ -205,14 +216,15 @@ class RCCar(object):
     # gets distance ahead of the car
     def get_distance(self):
 
-        self._direction = self.ultrasonic.get_distance()
+        self._distance = self.ultrasonic.get_distance()
+
         return self._distance
 
     # --------------------------- configure logging ----------------------------
     @classmethod
     def log_config(cls, stream, **kwargs):
         verbosity = kwargs.get("verbosity", QUIET)
-        filename = kwargs.get("filename", ".gpiolog")
+        filename = kwargs.get("filename", ".rccar_log")
 
         # logger for debugging
         if verbosity == VERBOSE:
@@ -268,7 +280,7 @@ if __name__ == '__main__':
     US_TRGI_PIN = 26
     US_ECHO_PIN = 19
 
-    RCCar.log_config(STDOUT, verbosity=VERBOSE)
+    RCCar.log_config(STDOUT, verbosity=QUIET)
 
     rc = RCCar(
             left_motor_pin_1=LEFT_MOTOR_PIN_1,
@@ -281,16 +293,17 @@ if __name__ == '__main__':
 
     rc.initialize()
 
-    rc.change_motor_params(speed=1)
+    rc.change_motor_params(speed=1, turn_rate=1)
 
     count = 0
+    max_count = 20
 
-    while (count < 1):
+    while count < max_count:
 
         count += 1
         time.sleep(1)
 
-        if (count < 10):
+        if (count < max_count/2):
 
             rc.move(FORWARD)
 

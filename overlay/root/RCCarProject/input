@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+for var in "$@"
+do
+  echo in > /sys/class/gpio/gpio"$var"/direction
+done

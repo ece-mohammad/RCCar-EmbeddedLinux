@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import logging as log
-from GPIOLIB import gpiolib as gpio
+import gpiolib as gpio
 
 # ------------------------------- Motor State ----------------------------------
 
@@ -46,7 +46,7 @@ class MotorControl(object):
 
     """
 
-    def __init__(self, min_speed=40):
+    def __init__(self, min_speed=30):
         self._pin_1 = None
         self._pin_2 = None
         self._direction = None
@@ -221,7 +221,7 @@ class MotorControl(object):
     @classmethod
     def log_config(cls, stream, **kwargs):
         verbosity = kwargs.get("verbosity", QUIET)
-        filename = kwargs.get("filename", ".motor_ctl")
+        filename = kwargs.get("filename", ".motor_ctl_log")
 
         # logger for debugging
         if verbosity == VERBOSE:
