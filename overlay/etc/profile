@@ -78,53 +78,8 @@ alias cls=clear
 alias ll="ls -lah"
 alias md=mkdir
 
-
-
-# ---------------------------------------------
-# run gpiod with default cponfigurations
-# ---------------------------------------------
-pigpiod
-
-# --------------------------------------------
-# Wellcome message
-# --------------------------------------------
-echo '|------------------------------------------------------------------------------|'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                                                                              |'
-echo '|                        p                             a                       |'
-echo '|                        0#DWw                     WKKBH                       |'
-echo '|                        ]]BKNNBB              #B#NKKENh                       |'
-echo '|                        ]]KKKKKN]   vw]Nap   $KKKKKKNNH                       |'
-echo '|                L*zQa;pK]KDMjKKN]   ]#BKNN   $KKKHIDNNKbpyJN;                 |'
-echo '|              ;w$PE2m#N#N0BKKL]K#yjK#0KKNN#my$KK*0KBB#N$NwQ3(ZwpL             |'
-echo '|          a#KQa#KKKEm#KKMMS$KN#KKpA0K#KKK#BKI#KNw#BQMM#DNmEKNKNNBK$wa         |'
-echo '|       a#N#K#KBPMSa#KBUpKUKBh]KKKNN#KKKKKNKKNKKKD|BRUK@2DRNw2MKKBBKNM#w       |'
-echo '|     HL0B0KKNbQ]###NKKKKKKKNNKMKMKMKKKMBKKMBKKKMKKKKKKKKKK#NNN{@pKKKKBDp;     |'
-echo '|    K]KBB##KNKKKKNDDNKNKKKKKKKHKHKNY#KhKH#HBWKR#/KKKKKKNNKDD#KKRKNNNKKNBN$    |'
-echo '|    XNKBBKPSL]KBKKKBBH   KKKKKWKWKKwKKwN#KWKNKKKN]KKKN `?KBNKKBKN*?58KKKNM    |'
-echo '|     HL     /HM\:KM#       KKKKKKKKKKKKKKKKKKKKKKKKKDS   *VKKH*XNHL     M     |'
-echo '|          /a#Q yMHH      KKKKKKKK  DN]KKKKQM  KKKKKKKNh    KKK# 2NN|          |'
-echo '|     /KKKKM    KKKN      KKKKKKKK  9KDKK$WK   KKKKKKKNh    ]KKK    MKMKM\     |'
-echo '|             HHKMM       KKKKKKK   1N0]DN#N   ]KKKKKNNh     7M?LL             |'
-echo '|                          KKMKKK   ]BBKKKKN   ]KNKKKmNh                       |'
-echo '|                          BKKKKK   ]KKKKKKN   ]KKKNKNKN                       |'
-echo '|                             KKK    ]KKKKN    ]KKM\*YN                        |'
-echo '|                             *9K     KKKKL    ]R\`                            |'
-echo '|                               1     KKKBH    *                               |'
-echo '|                                     ?KKH                                     |'
-echo '|------------------------------------------------------------------------------|'
-echo
-echo "-------------------- <<<~ Wellcome to $hostname ~>>> ---------------------------"
-
-
-
 # --------------------------------------------------------
 # Set Date
 # --------------------------------------------------------
-date -s 2019.3.3-11:59:59
+date -s '2019-3-3 11:59:59'
 

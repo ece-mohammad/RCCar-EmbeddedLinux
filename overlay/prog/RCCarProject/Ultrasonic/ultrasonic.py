@@ -83,6 +83,7 @@ class UltrasonicSensor(object):
         :return: 0
         """
         if self._trig_pin and self._echo_pin:
+
             gpio.GPIO_Pin.deinit_pin(self._trig_pin)
             gpio.GPIO_Pin.deinit_pin(self._echo_pin)
 

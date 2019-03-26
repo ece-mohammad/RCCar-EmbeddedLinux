@@ -34,7 +34,6 @@ class RCCarTerm(object):
         self.stdscr.addstr(13, 0, "Current speed: {}\n".format(self._speed))
         self.stdscr.addstr(14, 0, "Current turn rate: {}\n".format(self._turn_rate))
         self.stdscr.refresh()
-        self.stdscr.refresh()
 
     def end_session(self):
 
@@ -48,12 +47,10 @@ class RCCarTerm(object):
 
         # get user input
         start = time.time()
-        keys = list()
+        keys = set()
 
         while time.time() - start < 0.3:
-            key = self.stdscr.getch()
-            if key not in keys:
-                keys.append(key)
+            keys.add(self.stdscr.getch())
 
         return keys
 

@@ -654,7 +654,7 @@ if __name__ == "__main__":
     #         c += 1
 
     # Test 3 : PWM on 4 pins w/ low freq (0.5, 1H)Hz
-    p0 = GPIO_Pin(26, PWM)
+    p0 = GPIO_Pin(5, PWM)
     p1 = GPIO_Pin(12, PWM)
     p2 = GPIO_Pin(16, PWM)
     p3 = GPIO_Pin(20, PWM)
