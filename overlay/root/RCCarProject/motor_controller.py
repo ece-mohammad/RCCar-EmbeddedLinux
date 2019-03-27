@@ -5,9 +5,10 @@ import gpiolib as gpio
 
 # ------------------------------- Motor State ----------------------------------
 
-_STOPPED = 0
-_RUNNING_CW = 1
-_RUNNING_CCW = 2
+_UNINITIALIZED = 0
+_STOPPED = 1
+_RUNNING_CW = 2
+_RUNNING_CCW = 3
 
 # -------------------------- Rotation Directions -------------------------------
 
@@ -46,12 +47,15 @@ class MotorControl(object):
 
     """
 
-    def __init__(self, min_speed=30):
+    def __init__(self, min_speed=0):
+
         self._pin_1 = None
         self._pin_2 = None
         self._direction = None
         self._speed = 0
-        self._state = _STOPPED
+        self._state = _UNINITIALIZED
+
+        self._pwm_freq = 1
         self._min_speed = min_speed
 
         # TODO :: Add speed measurements
@@ -73,6 +77,8 @@ class MotorControl(object):
 
                 self._pin_2 = gpio.GPIO_Pin(gnd_pin, gpio.GPIO)
                 self._pin_2.set_pin_direction(gpio.OUTPUT)
+
+                self._state = _STOPPED
 
             # if gnd pin is not available
             else:
@@ -111,20 +117,24 @@ class MotorControl(object):
                 self._pin_2.deinit_pin()
                 self._pin_1.deinit_pin()
 
+            self._pin_1 = None
+            self._pin_2 = None
+            self._state = _UNINITIALIZED
+
         else:
 
-            log.debug("Trying to release pin_2 before initialization.")
+            log.error("Trying to release motor pins before initialization.")
             err_code = _ERR_INVALID_CONFIG
 
         return err_code
 
     # rotate motor in a given direction with a given speed
-    def rotate_motor(self, direction, speed=40):
+    def rotate_motor(self, direction, speed=0):
 
         err_code = SUCCESS
 
         # check motor pins
-        if self._pin_1 and self._pin_2:
+        if self._state != _UNINITIALIZED:
 
             # check speed
             if speed < self._min_speed:
@@ -142,8 +152,11 @@ class MotorControl(object):
                     self._pin_1.reconfigure_pin(gpio.PWM)
                     self._pin_2.reconfigure_pin(gpio.GPIO)
 
-                    self._pin_1.pwm_generate(20, speed)
+                    self._pin_1.pwm_generate(self._pwm_freq, speed)
                     self._pin_2.set_pin_value(gpio.LOW)
+
+                    self._state = _RUNNING_CW
+                    self._direction = ROTATE_CW
 
                 # rotation direction counter clockwise (pin_1 -> GND, pin_2 -> PWM)
                 elif direction == ROTATE_CCW:
@@ -152,7 +165,10 @@ class MotorControl(object):
                     self._pin_2.reconfigure_pin(gpio.PWM)
 
                     self._pin_1.set_pin_value(gpio.LOW)
-                    self._pin_2.pwm_generate(20, speed)
+                    self._pin_2.pwm_generate(self._pwm_freq, speed)
+
+                    self._state = _RUNNING_CCW
+                    self._direction = ROTATE_CCW
 
                 # if direction is invalid
                 else:
@@ -163,7 +179,7 @@ class MotorControl(object):
             # if motor is running in the same direction
             else:
 
-                self._update_speed(speed)
+                self.update_speed(speed)
 
         # if pins are not configured yet
         else:
@@ -174,7 +190,7 @@ class MotorControl(object):
         return err_code
 
     # change motor speed
-    def _update_speed(self, speed):
+    def update_speed(self, speed):
         """
         Changes motor speed
         :param speed: new motor speed( PWM duty cycle %)
@@ -182,33 +198,26 @@ class MotorControl(object):
         """
         err_code = SUCCESS
 
-        # check if motor pins are configured
-        if self._pin_1 and self._pin_2:
+        # check if motor is already running
+        if self._state != _UNINITIALIZED:
 
-            # check if motor is running
-            if self._state != _STOPPED:
+            # check if speed > minimum speed
+            if speed >= self._min_speed:
 
-                # check if speed > minimum speed
-                if speed >= self._min_speed:
+                self._speed = speed
 
-                    self._speed = speed
+                # check rotation direction
+                if self._direction == ROTATE_CW:
 
-                    # check rotation direction
-                    if self._direction == ROTATE_CW:
-
-                        self._pin_1.pwm_update(speed)
-
-                    else:
-
-                        self._pin_2.pwm_update(speed)
+                    self._pin_1.pwm_update(speed)
 
                 else:
 
-                    log.error("Motor speed is less than the minimum required to rotate the motor!")
+                    self._pin_2.pwm_update(speed)
 
             else:
 
-                log.error("Motor is not rotating, changing its speed won't have any affect!")
+                log.error("Motor speed is less than the minimum required to rotate the motor!")
 
         # if motor pins are not configured
         else:
@@ -220,6 +229,7 @@ class MotorControl(object):
     # configure motor logging
     @classmethod
     def log_config(cls, stream, **kwargs):
+
         verbosity = kwargs.get("verbosity", QUIET)
         filename = kwargs.get("filename", ".motor_ctl_log")
 
@@ -260,7 +270,6 @@ if __name__ == '__main__':
     import time
 
     MotorControl.log_config(STDOUT, verbosity=QUIET)
-    gpio.GPIO_Pin.log_config(STDOUT, verbosity=VERBOSE)
 
     p0 = gpio.GPIO_Pin(5, gpio.PWM)
     m0 = MotorControl(20)
@@ -270,12 +279,21 @@ if __name__ == '__main__':
     m0.init_motor(20, 21)
     m1.init_motor(12, 16)
 
-    m0.rotate_motor(ROTATE_CW)
-    m1.rotate_motor(ROTATE_CCW)
-    time.sleep(10)
-    m0.rotate_motor(ROTATE_CCW)
-    m1.rotate_motor(ROTATE_CW)
-    time.sleep(10)
+    m0.rotate_motor(ROTATE_CW, speed=50)
+    m1.rotate_motor(ROTATE_CW, speed=50)
+    time.sleep(5)
+
+    m0.rotate_motor(ROTATE_CW, speed=25)
+    m1.rotate_motor(ROTATE_CW, speed=75)
+    time.sleep(5)
+
+    m0.rotate_motor(ROTATE_CCW, speed=50)
+    m1.rotate_motor(ROTATE_CCW, speed=50)
+    time.sleep(5)
+
+    m0.rotate_motor(ROTATE_CCW, speed=25)
+    m1.rotate_motor(ROTATE_CCW, speed=75)
+    time.sleep(5)
 
     m0.deinit_motor()
     m1.deinit_motor()

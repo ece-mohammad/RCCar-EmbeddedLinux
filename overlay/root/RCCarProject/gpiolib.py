@@ -164,7 +164,6 @@ class GPIO_Pin(object):
 
             # stop PWM
             self.pwm_stop()
-            self._pwm_on = False
 
         # if current mode is GPIO input
         elif self._mode == GPIO and self._direction == INPUT:
@@ -388,17 +387,25 @@ class GPIO_Pin(object):
                 self.__t_up = duty_cycle * t_total / 100
                 self.__t_dwn = t_total - self.__t_up
 
-                # PWM thread
-                self._pwm_on = True
-                self._pwm_handler = thread.Thread(target=self.__gen_pwm__, args=(pulses,))
-                self._pwm_handler.setDaemon(True)
-                self._pwm_handler.setName("Pin{}_PWM_Thread".format(self._pin_number))
-                self._pwm_handler.start()
+                # if no pwm signal on this pin
+                if not self._pwm_on:
 
-                log.debug(
-                        "Satrted PWM on pin: {} with frequency: {} and duty cycle: {}".format(self._pin_number,
-                                                                                              frequency,
-                                                                                              duty_cycle))
+                    # PWM thread
+                    self._pwm_on = True
+                    self._pwm_handler = thread.Thread(target=self.__gen_pwm__, args=(pulses,))
+                    self._pwm_handler.setDaemon(True)
+                    self._pwm_handler.setName("Pin{}_PWM_Thread".format(self._pin_number))
+                    self._pwm_handler.start()
+
+                    log.debug(
+                            "Satrted PWM on pin: {} with frequency: {} and duty cycle: {}".format(self._pin_number,
+                                                                                                  frequency,
+                                                                                                  duty_cycle))
+                # if there is pwm signal on this pin
+                else:
+
+                    # pwm parameters were updated while performing timing calculations
+                    pass
 
             # if duty cycle or frequency values are invalid
             else:
@@ -424,10 +431,20 @@ class GPIO_Pin(object):
         :param duty_cycle:
         :return:
         """
+
         total_time = 1.0 / self._frequency
-        self.__t_up = duty_cycle * total_time / 100
-        self.__t_dwn = total_time - self.__t_up
-        pass
+
+        if duty_cycle:
+
+            self.__t_up = duty_cycle * total_time / 100
+            self.__t_dwn = total_time - self.__t_up
+
+        else:
+
+            self.__t_up = 0
+            self.__t_dwn = total_time
+
+        return 0
 
     # stop PWM signal
     def pwm_stop(self):
@@ -442,6 +459,13 @@ class GPIO_Pin(object):
 
                 # clear PWM flag False (reset)
                 self._pwm_on = False
+
+                # wait till pwm thread returns
+                while self._pwm_handler.is_alive():
+                    pass
+
+                # set thread handler to None
+                self._pwm_handler = None
 
             else:
 
@@ -461,18 +485,19 @@ class GPIO_Pin(object):
     # private method for PWM generation
     def __gen_pwm__(self, pulses):
 
-        # number of PWM pulses is defined
+        # number of PWM pulses > 0
         if pulses:
 
-            n = pulses
-
-            while n:
+            while pulses:
 
                 # if up_time > 0
                 if self.__t_up >= 0:
 
+                    # set pin high for __t_up time
                     self.set_pin_value(HIGH)
                     time.sleep(self.__t_up)
+
+                    # set pin low for __t_down time
                     self.set_pin_value(LOW)
                     time.sleep(self.__t_dwn)
 
@@ -482,7 +507,8 @@ class GPIO_Pin(object):
                     log.error("PWM T_on {} is not larger than 0!".format(self.__t_up))
                     self.set_pin_value(LOW)
 
-                n -= 1
+                # decrement number of remaining pulses
+                pulses -= 1
 
         # if number of PWM pulses is 0 
         else:
@@ -493,8 +519,11 @@ class GPIO_Pin(object):
                 # if up_time > 0
                 if self.__t_up >= 0:
 
+                    # set pin high for __t_up time
                     self.set_pin_value(HIGH)
                     time.sleep(self.__t_up)
+
+                    # set pin low for __t_down time
                     self.set_pin_value(LOW)
                     time.sleep(self.__t_dwn)
 
@@ -577,6 +606,7 @@ class GPIO_Pin(object):
     # --------------------------- configure logging ----------------------------
     @classmethod
     def log_config(cls, stream, **kwargs):
+
         verbosity = kwargs.get("verbosity", QUIET)
         filename = kwargs.get("filename", ".gpiolog")
 
@@ -654,26 +684,43 @@ if __name__ == "__main__":
     #         c += 1
 
     # Test 3 : PWM on 4 pins w/ low freq (0.5, 1H)Hz
+
+    GPIO_Pin.log_config(stream=STDOUT, verbosity=QUIET)
+
     p0 = GPIO_Pin(5, PWM)
     p1 = GPIO_Pin(12, PWM)
     p2 = GPIO_Pin(16, PWM)
     p3 = GPIO_Pin(20, PWM)
     p4 = GPIO_Pin(21, PWM)
 
-    p0.pwm_generate(1, 30, 0)
+    p0.pwm_generate(1, 50, 0)
     p1.pwm_generate(1, 50, 0)
-    p2.pwm_generate(1, 50, 0)
-    p3.pwm_generate(1, 50, 0)
-    p4.pwm_generate(1, 50, 0)
+    p2.pwm_generate(2, 50, 0)
+    p3.pwm_generate(4, 50, 0)
+    p4.pwm_generate(8, 50, 0)
 
-    time.sleep(10)
+    time.sleep(5)
 
     p1.pwm_update(20)
     p2.pwm_update(40)
     p3.pwm_update(60)
     p4.pwm_update(80)
 
-    time.sleep(10)
+    time.sleep(5)
+
+    p1.pwm_update(100)
+    p2.pwm_update(100)
+    p3.pwm_update(100)
+    p4.pwm_update(100)
+
+    time.sleep(5)
+
+    p1.pwm_update(0)
+    p2.pwm_update(0)
+    p3.pwm_update(0)
+    p4.pwm_update(0)
+
+    time.sleep(5)
 
     p0.pwm_stop()
     p1.pwm_stop()
@@ -682,7 +729,7 @@ if __name__ == "__main__":
     p4.pwm_stop()
 
     while thread.active_count() > 1:
-        time.sleep(0.1)
+        time.sleep(1e5)
 
     p0.deinit_pin()
     p1.deinit_pin()

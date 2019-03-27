@@ -52,44 +52,58 @@ class RCCar(object):
 
     def __init__(self, **kwargs):
 
-        self._left_motor_pin_1 = kwargs.get("left_motor_pin_1", None)
-        self._left_motor_pin_2 = kwargs.get("left_motor_pin_2", None)
-        self._right_motor_pin_1 = kwargs.get("right_motor_pin_1", None)
-        self._right_motor_pin_2 = kwargs.get("right_motor_pin_2", None)
-        self._ultrasonic_trig_pin = kwargs.get("ultrasonic_trig_pin", None)
-        self._ultrasonic_echo_pin = kwargs.get("ultrasonic_echo_pin", None)
+        self.right_motor = None
+        self.left_motor = None
+        self.ultrasonic = None
 
-        self._min_speed = kwargs.get("motor_min_speed", 30)
-        self._turn_rate = kwargs.get("car_turn_rate", 50)
-        self._rel_speed = 0
+        self._left_motor_pin_1 = kwargs.get("lm_pin_1", None)
+        self._left_motor_pin_2 = kwargs.get("lm_pin_2", None)
+        self._right_motor_pin_1 = kwargs.get("rm_pin_1", None)
+        self._right_motor_pin_2 = kwargs.get("rm_pin_2", None)
+
+        self._ultrasonic_trig_pin = kwargs.get("us_trig_pin", None)
+        self._ultrasonic_echo_pin = kwargs.get("us_echo_pin", None)
+        self._ultrasonic_min_distance = kwargs.get("us_min_distance", None)
+        self._ultrasonic_max_distance = kwargs.get("us_max_distance", None)
+
+        self._motor_min_speed = kwargs.get("motor_min_speed", 0)
+
+        self._car_turn_rate = kwargs.get("car_turn_rate", 0)
+        self._car_speed = 0
+        self._car_direction = None
+
+        self._distance_to_object = 0
+
         self._state = UNINITIALIZED
-        self._direction = None
-
-        self._distance = 0
-
-        self.right_motor = motor.MotorControl(min_speed=kwargs.get("motor_min_speed", 30))
-        self.left_motor = motor.MotorControl(min_speed=kwargs.get("motor_min_speed", 30))
-        self.ultrasonic = ultrasonic.UltrasonicSensor(min_distance=5, max_distance=300)
 
     # initialize car components
     def initialize(self):
 
         err_code = SUCCESS
 
+        # create instances of car modules 9left motor, right motor, ultrasonic)
+        self.right_motor = motor.MotorControl(self._motor_min_speed)
+        self.left_motor = motor.MotorControl(self._motor_min_speed)
+        self.ultrasonic = ultrasonic.UltrasonicSensor(self._ultrasonic_min_distance, self._ultrasonic_max_distance)
+
+        # initialize car modules
         left_motor = self.right_motor.init_motor(self._right_motor_pin_1, self._right_motor_pin_2)
         right_motor = self.left_motor.init_motor(self._left_motor_pin_1, self._left_motor_pin_2)
         ranger = self.ultrasonic.init_ultrasonic(trig_pin=self._ultrasonic_trig_pin, echo_pin=self._ultrasonic_echo_pin)
 
+        # if initializing left motor was successful
         if left_motor != motor.SUCCESS:
 
             err_code = ERR_ERROR
             log.critical("Left motor failed to initialize!")
 
+        # if initializing right motor was successful
         elif right_motor != motor.SUCCESS:
 
             err_code = ERR_ERROR
             log.critical("Right motor failed to initialize!")
 
+        # if initializing ultrasonic was successful
         elif ranger != ultrasonic.SUCCESS:
 
             err_code = ERR_ERROR
@@ -107,12 +121,36 @@ class RCCar(object):
 
         err_code = SUCCESS
 
-        # TODO :: Deinit car modules
+        # check if car is initialized
         if self._state != UNINITIALIZED:
 
+            # deinit car modules
             self.right_motor.deinit_motor()
             self.left_motor.deinit_motor()
-            self.ultrasonic.de_init()
+            self.ultrasonic.deinit_ultrasonic()
+
+            # reset car attributes
+            self.right_motor = None
+            self.left_motor = None
+            self.ultrasonic = None
+
+            self._left_motor_pin_1 = None
+            self._left_motor_pin_2 = None
+            self._right_motor_pin_1 = None
+            self._right_motor_pin_2 = None
+
+            self._ultrasonic_trig_pin = None
+            self._ultrasonic_echo_pin = None
+            self._ultrasonic_min_distance = None
+            self._ultrasonic_max_distance = None
+
+            self._motor_min_speed = 0
+            self._car_turn_rate = 0
+            self._car_speed = 0
+            self._car_direction = None
+
+            self._distance_to_object = 0
+
             self._state = UNINITIALIZED
 
         else:
@@ -123,10 +161,11 @@ class RCCar(object):
         return err_code
 
     # move the car in a given direction
-    def move(self, direction):
+    def move(self, direction, speed):
 
         err_code = SUCCESS
 
+        # check if car is initialized
         if self._state == UNINITIALIZED:
 
             log.error("Trying to move car before initialization!")
@@ -134,95 +173,117 @@ class RCCar(object):
 
         else:
 
-            if self._rel_speed:
+            if speed >= 0:
+
+                self._car_speed = speed
+
+            else:
+
+                self._car_speed = 0
+                log.error("Car speed {} can't be a negative number!".format(speed))
+
+            # if car speed is > 0
+            if self._car_speed:
 
                 # calculate motor speed
-                speed = int(30 + ceil(0.7 * self._rel_speed))
+                motors_pwm = int(self._motor_min_speed + ceil(0.7 * self._car_speed))
+
+                self._state = RUNNING
+                self._car_direction = direction
+
+                # if direction is forward
+                if direction == FORWARD:
+
+                    # rotate both motors in the same direction (clockwise direction)
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=motors_pwm)
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=motors_pwm)
+                    log.debug("Moving car in forward direction!")
+
+                elif direction == BACKWARD:
+
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=motors_pwm)
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=motors_pwm)
+                    self._state = RUNNING
+                    log.debug("Moving car in backwards direction!")
+
+                elif direction == ROTATE_RIGHT:
+
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._motor_min_speed)
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._motor_min_speed)
+                    self._state = RUNNING
+                    log.debug("Rotating car to the right!")
+
+                elif direction == ROTATE_LEFT:
+
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._motor_min_speed)
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._motor_min_speed)
+                    self._state = RUNNING
+                    log.debug("Rotating car to the left!")
+
+                elif direction == TURN_RIGHT:
+
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CW,
+                                                  speed=(motors_pwm - int(motors_pwm * self._car_turn_rate / 100)))
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=motors_pwm)
+                    self._state = RUNNING
+                    log.debug("Turning car to the right!")
+
+                elif direction == TURN_LEFT:
+
+                    self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=motors_pwm)
+                    self.left_motor.rotate_motor(direction=motor.ROTATE_CW,
+                                                 speed=(motors_pwm - int(motors_pwm * self._car_turn_rate / 100)))
+                    self._state = RUNNING
+                    log.debug("Turning car to the left!")
+
+                else:
+
+                    log.error("Failed to move car in direction: {}".format(direction))
+                    log.debug("Invalid direction: {}".format(direction))
+                    err_code = ERR_INVALID_ARGUMENT
 
             else:
 
-                speed = 0
-
-            self._direction = direction
-
-            if direction == FORWARD:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
-                log.debug("Moving car in forward direction!")
-
-            elif direction == BACKWARD:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=speed)
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=speed)
-                log.debug("Moving car in backwards direction!")
-
-            elif direction == ROTATE_RIGHT:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._min_speed)
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._min_speed)
-                log.debug("Rotating car to the right!")
-
-            elif direction == ROTATE_LEFT:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=self._min_speed)
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CCW, speed=self._min_speed)
-                log.debug("Rotating car to the left!")
-
-            elif direction == TURN_RIGHT:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=int(speed * (self._turn_rate / 100.0)))
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
-                log.debug("Turning car to the right!")
-
-            elif direction == TURN_LEFT:
-
-                self.right_motor.rotate_motor(direction=motor.ROTATE_CW, speed=speed)
-                self.left_motor.rotate_motor(direction=motor.ROTATE_CW, speed=int(speed * (self._turn_rate / 100.0)))
-                log.debug("Turning car to the left!")
-
-            else:
-
-                log.error("Failed to move car in direction: {}".format(direction))
-                log.debug("Invalid direction: {}".format(direction))
-                err_code = ERR_INVALID_ARGUMENT
-                self._direction = None
+                self.right_motor.update_speed(0)
+                self.left_motor.update_speed(0)
+                self._state = STOPPED
 
         return err_code
 
     # change motor parameters
-    def change_motor_params(self, speed=None, turn_rate=None):
+    def change_car_params(self, speed=None, turn_rate=None):
 
         err_code = SUCCESS
 
         if speed:
-            self._rel_speed = speed
+            self._car_speed = speed
             log.debug("Changed motor speed to: {}!".format(speed))
 
         if turn_rate:
-            self._turn_rate = turn_rate
+            self._car_turn_rate = turn_rate
             log.debug("Changed turn rate to: {}!".format(speed))
 
-        if (self._state != STOPPED and self._state != UNINITIALIZED) and self._direction:
-            self.move(self._direction)
+        if (self._state != STOPPED and self._state != UNINITIALIZED) and self._car_direction:
+            self.move(self._car_direction)
 
         return err_code
 
     # get car's speed
     def get_speed(self):
 
-        return self._rel_speed
+        return self._car_speed
 
     # gets distance ahead of the car
     def get_distance(self):
 
-        self._distance = self.ultrasonic.get_distance()
+        self._distance_to_object = self.ultrasonic.get_distance()
 
-        return self._distance
+        return self._distance_to_object
 
     # --------------------------- configure logging ----------------------------
     @classmethod
     def log_config(cls, stream, **kwargs):
+
         verbosity = kwargs.get("verbosity", QUIET)
         filename = kwargs.get("filename", ".rccar_log")
 
@@ -293,7 +354,7 @@ if __name__ == '__main__':
 
     rc.initialize()
 
-    rc.change_motor_params(speed=1, turn_rate=1)
+    rc.change_car_params(speed=1, turn_rate=1)
 
     count = 0
     max_count = 20
@@ -303,7 +364,7 @@ if __name__ == '__main__':
         count += 1
         time.sleep(1)
 
-        if (count < max_count/2):
+        if (count < max_count / 2):
 
             rc.move(FORWARD)
 

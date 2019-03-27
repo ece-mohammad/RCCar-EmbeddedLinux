@@ -60,8 +60,8 @@ class CarController(object):
         self._speed = 0
         self._rpm = 0   # TODO :: Add motor encoder
 
-        self._speed_step = 1
-        self._turn_step = 1
+        self._speed_step = 5
+        self._turn_step = 5
 
     def connect_car(self, **kwargs):
 
@@ -123,10 +123,10 @@ class CarController(object):
 
                 self._speed += self._speed_step
 
-                if self._speed > 100:
+                if self._speed >= 100:
                     self._speed = 100
 
-                self._car.change_motor_params(speed=self._speed)
+                self._car.change_car_params(speed=self._speed)
 
                 log.info("Received command signal: {}".format("speed up"))
                 log.debug("Increasing car speed to: {}".format(self._speed))
@@ -135,10 +135,10 @@ class CarController(object):
 
                 self._speed -= self._speed_step
 
-                if self._speed < 0:
+                if self._speed <= 0:
                     self._speed = 0
 
-                self._car.change_motor_params(speed=self._speed)
+                self._car.change_car_params(speed=self._speed)
 
                 log.info("Received command signal: {}".format("speed down"))
                 log.debug("Decreasing car speed to: {}".format(self._speed))
@@ -147,22 +147,22 @@ class CarController(object):
 
                 self._turn_rate += self._turn_step
 
-                if self._turn_rate > 100:
+                if self._turn_rate >= 100:
                     self._turn_rate = 100
 
-                self._car.change_motor_params(turn_rate=self._turn_rate)
+                self._car.change_car_params(turn_rate=self._turn_rate)
 
                 log.info("Received command signal: {}".format("turn rate up"))
                 log.debug("Increasing car turn rate to: {}".format(self._turn_rate))
 
             elif signal == custom_term.TURN_RATE_DOWN:
 
-                self._turn_rate += self._turn_step
+                self._turn_rate -= self._turn_step
 
-                if self._turn_rate < 0:
+                if self._turn_rate <= 0:
                     self._turn_rate = 0
 
-                self._car.change_motor_params(turn_rate=self._turn_rate)
+                self._car.change_car_params(turn_rate=self._turn_rate)
 
                 log.info("Received command signal: {}".format("turn rate down"))
                 log.debug("Decreasing car turn rate to: {}".format(self._turn_rate))
@@ -230,7 +230,6 @@ class CarController(object):
 
             log.error("Can't ptrocess received signal!")
             log.debug("Invalid signal type!")
-            pass
 
         self.update_controller_data()
 
@@ -305,7 +304,7 @@ if __name__ == '__main__':
 
     heartbeat = gpio.GPIO_Pin(hbp, gpio.PWM)
 
-    CarController.log_config(stream=FILE, verbosity=CRITICAL)
+    # CarController.log_config(stream=FILE, verbosity=CRITICAL)
 
     rc = CarController()
 

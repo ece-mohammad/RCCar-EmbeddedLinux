@@ -3,6 +3,7 @@
 import time
 import logging as log
 import gpiolib as gpio
+import micro_sleep
 
 # -------------------------------- Error codes ---------------------------------
 
@@ -76,7 +77,7 @@ class UltrasonicSensor(object):
         return err_code
 
     # de configure ultrasonic GPIO pins
-    def de_init(self):
+    def deinit_ultrasonic(self):
         """
         Deconfigure GPIO pins associated with trigger/echo pins of the
         ultrasonic module
@@ -104,11 +105,11 @@ class UltrasonicSensor(object):
 
             # set trigger pin low
             self._trig_pin.set_pin_value(gpio.LOW)
-            self.micro_sleep(2000)
+            micro_sleep.micro_sleep(2000)
 
             # send trigger pulse (HIGH for 10 microseconds)
             self._trig_pin.set_pin_value(gpio.HIGH)
-            self.micro_sleep(10)
+            micro_sleep.micro_sleep(10)
             self._trig_pin.set_pin_value(gpio.LOW)
 
             start = time.time()
@@ -152,20 +153,10 @@ class UltrasonicSensor(object):
 
         return distance
 
-    # microsecond sleep
-    @staticmethod
-    def micro_sleep(micro_sec):
-
-        start_time = time.time()
-
-        while time.time() - start_time < micro_sec * (1e-6):
-            pass
-
-        return 0
-
     # configure ultrasonic logging
     @classmethod
     def log_config(cls, stream, **kwargs):
+
         verbosity = kwargs.get("verbosity", QUIET)
         filename = kwargs.get("filename", ".ultrasonic_log")
 
@@ -204,8 +195,6 @@ class UltrasonicSensor(object):
 
 if __name__ == '__main__':
 
-    import math
-
     p0 = gpio.GPIO_Pin(5, gpio.PWM)
     p0.pwm_generate(1, 50)
 
@@ -223,5 +212,5 @@ if __name__ == '__main__':
         time.sleep(.5)
         count += 1
 
-    us.de_init()
+    us.deinit_ultrasonic()
     p0.deinit_pin()
