@@ -49,7 +49,7 @@ class MotorControl(object):
 
     """
 
-    def __init__(self, min_speed=0, pwm_freq=1):
+    def __init__(self, min_speed=0, pwm_freq=20):
 
         self._pin_1 = None
         self._pin_2 = None

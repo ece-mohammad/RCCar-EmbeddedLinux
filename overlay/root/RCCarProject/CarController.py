@@ -410,15 +410,15 @@ if __name__ == '__main__':
     # HearBeat Pin
     HEART_BEAT_PIN = 12
 
-    # Right Motor Pins
-    RIGHT_MOTOR_PIN_1 = 13
-    RIGHT_MOTOR_PIN_2 = 19
-    RIGHT_MOTOR_PWM_PIN = 26
+    # Left Motor Pins
+    LEFT_MOTOR_PIN_1 = 13
+    LEFT_MOTOR_PIN_2 = 19
+    LEFT_MOTOR_PWM_PIN = 26
 
-    # Left Motor Pin
-    LEFT_MOTOR_PIN_1 = 16
-    LEFT_MOTOR_PIN_2 = 20
-    LEFT_MOTOR_PWM_PIN = 21
+    # Right Motor Pin
+    RIGHT_MOTOR_PIN_1 = 16
+    RIGHT_MOTOR_PIN_2 = 20
+    RIGHT_MOTOR_PWM_PIN = 21
 
     # Ultrasonic Pins
     US_TRGI_PIN = 6

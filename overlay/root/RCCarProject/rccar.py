@@ -101,9 +101,10 @@ class RCCar(object):
         err_code = SUCCESS
 
         # create instances of car modules 9left motor, right motor, ultrasonic)
-        self.right_motor = motor.MotorControl(self._motor_min_speed)
-        self.left_motor = motor.MotorControl(self._motor_min_speed)
-        self.ultrasonic = ultrasonic.UltrasonicSensor(self._ultrasonic_min_distance, self._ultrasonic_max_distance)
+        self.right_motor = motor.MotorControl(min_speed=self._motor_min_speed)
+        self.left_motor = motor.MotorControl(min_speed=self._motor_min_speed)
+        self.ultrasonic = ultrasonic.UltrasonicSensor(min_distance=self._ultrasonic_min_distance,
+                                                      max_distance=self._ultrasonic_max_distance, sound_speed=34000)
 
         # initialize car modules
         left_motor = self.right_motor.init_motor(
@@ -180,6 +181,7 @@ class RCCar(object):
             self._ultrasonic_max_distance = None
 
             self._motor_min_speed = 0
+            self._motor_pwm_freq = 20
             self._car_turn_rate = 0
             self._car_speed = 0
             self._car_direction = None
