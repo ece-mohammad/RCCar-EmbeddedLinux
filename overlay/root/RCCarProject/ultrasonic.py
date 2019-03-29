@@ -30,23 +30,27 @@ STDOUT = "stdout"
 class UltrasonicSensor(object):
 
     def __init__(self, min_distance=4, max_distance=300, sound_speed=34000):
+
         self._trig_pin = None
         self._echo_pin = None
         self._distance = 0
         self._min_distance = min_distance
         self._max_distance = max_distance
         self._sound_speed = sound_speed
-        self._max_time = float(self._max_distance) / self._sound_speed
-        self._min_time = float(self._min_distance) / self._sound_speed
+        self._max_time = self._max_distance / float(self._sound_speed)
+        self._min_time = self._min_distance / float(self._sound_speed)
 
     # initialize ultrasonic sensor GPIO pins
     def init_ultrasonic(self, trig_pin=None, echo_pin=None):
         """
         Initializes ultrasonic pins
+        :param trig_pin : Ultrasonic trigger pin
+        :param echo_pin : Ultrasonic echo pin
         :return: error code that indicates if the pins were initialized
         """
-
         err_code = SUCCESS
+
+        assert all([trig_pin, echo_pin])
 
         # check if trigger pin is available
         if gpio.GPIO_Pin.is_available(trig_pin) and not gpio.GPIO_Pin.is_used(trig_pin)[1] and trig_pin:
@@ -79,8 +83,7 @@ class UltrasonicSensor(object):
     # de configure ultrasonic GPIO pins
     def deinit_ultrasonic(self):
         """
-        Deconfigure GPIO pins associated with trigger/echo pins of the
-        ultrasonic module
+        De-configure GPIO pins associated with ultrasonic module (trigger/echo pins)
         :return: 0
         """
         if self._trig_pin and self._echo_pin:
@@ -96,8 +99,8 @@ class UltrasonicSensor(object):
     # measures distance to the first object in front of the ultrasonic sensor
     def get_distance(self):
         """
-        :returns the distance to the first object in front of the sensor
-        :return: int
+        Gets distance measured by the ultrasonic module
+        :returns (int) : the distance to the first object in front of the sensor
         """
 
         # check if pins have been initialized
@@ -153,53 +156,14 @@ class UltrasonicSensor(object):
 
         return distance
 
-    # configure ultrasonic logging
-    @classmethod
-    def log_config(cls, stream, **kwargs):
-
-        verbosity = kwargs.get("verbosity", QUIET)
-        filename = kwargs.get("filename", ".ultrasonic_log")
-
-        # logger for debugging
-        if verbosity == VERBOSE:
-
-            dlevel = log.DEBUG
-
-        elif verbosity == QUIET:
-
-            dlevel = log.INFO
-
-        elif verbosity == WARNINGS:
-
-            dlevel = log.WARNING
-
-        elif verbosity == ERRORS:
-
-            dlevel = log.ERROR
-
-        else:
-
-            dlevel = log.INFO
-
-        if stream == FILE:
-
-            log.basicConfig(filename=filename, filemode='w',
-                            format="[ULTRASONIC]::%(levelname)s::%(asctime)s::%(message)s",
-                            datefmt="%d/%m/%Y %I:%M:%S", level=dlevel)
-
-        else:
-
-            log.basicConfig(format="[ULTRASONIC]::%(levelname)s::%(asctime)s::%(message)s", datefmt="%d/%m/%Y %I:%M:%S",
-                            level=dlevel)
-
 
 if __name__ == '__main__':
 
-    p0 = gpio.GPIO_Pin(5, gpio.PWM)
+    p0 = gpio.GPIO_Pin(12, gpio.PWM)
     p0.pwm_generate(1, 50)
 
     us = UltrasonicSensor(max_distance=400)
-    us.init_ultrasonic(trig_pin=26, echo_pin=19)
+    us.init_ultrasonic(trig_pin=6, echo_pin=5)
 
     normalize = lambda x: round(x, 2)
 

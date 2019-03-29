@@ -99,7 +99,7 @@ class GPIO_Pin(object):
         self._init_gpio_pin()
 
         self._pwm_duty = 0
-        self._frequency = 0
+        self._frequency = 1
         self._pwm_on = False
         self._pwm_handler = None
         self.__t_up = 0
@@ -107,6 +107,10 @@ class GPIO_Pin(object):
 
     # Add pin instance to /sys/class/gpio
     def _init_gpio_pin(self):
+        """
+        Initialize GPIO pin according to its mode, by adding a pin class to /sys/class/gpio
+        :return: error code that indicates if the pin was initialized successfully
+        """
 
         # error code
         err_code = SUCCESS
@@ -149,67 +153,12 @@ class GPIO_Pin(object):
 
         return err_code
 
-    # reconfigure pin
-    def reconfigure_pin(self, mode):
-        """
-        Reconfigures pin
-        :param mode: Mode for the pin PWM or GPIO
-        :return: error code
-        """
-
-        err_code = SUCCESS
-
-        # if current mode is PWM and PWM is running
-        if self._mode == PWM and self._pwm_on:
-
-            # stop PWM
-            self.pwm_stop()
-
-        # if current mode is GPIO input
-        elif self._mode == GPIO and self._direction == INPUT:
-
-            # set mode to output
-            self.set_pin_direction(OUTPUT)
-
-        else:
-
-            pass
-
-        # if new mode is PWM
-        if mode == PWM:
-
-            # if current mode is GPIO
-            if self._mode == GPIO:
-                self._mode = PWM
-
-            log.info("Changed pin {} mode {}".format(self._pin_number, mode))
-
-            # set pin value low
-            self.set_pin_value(LOW)
-
-        # if new mode is GPIO
-        elif mode == GPIO:
-
-            # if current mode is PWM
-            if self._mode == PWM:
-                self._mode = GPIO
-
-            log.info("Changed pin {} mode {}".format(self._pin_number, mode))
-
-            # set pin value low
-            self.set_pin_value(LOW)
-
-        else:
-
-            err_code = ERR_INVALID_ARGUMENT
-            log.debug("Invalid mode configuration {} for pin {}".format(mode, self._pin_number))
-            log.error("Failed to change pin {} mode to {}".format(self._pin_number, mode))
-
-        return err_code
-
     # Remove pin instance from /sys/class/gpio
     def deinit_pin(self):
-
+        """
+        De-initialize pin, by removing pin class from /sys/class/gpio
+        :return: error code tht indicates if the pin was de-initialized successfully
+        """
         # error code
         err_code = SUCCESS
 
@@ -242,7 +191,11 @@ class GPIO_Pin(object):
 
     # Set pin direction
     def set_pin_direction(self, direction):
-
+        """
+        Sets pin direction, by writing to /sys/class/gpio/gpio${pin_num}/direction
+        :param direction: Pin direction INPUT or OUTPUT
+        :return: error code to indicate it the pin was configured successfully or not
+        """
         err_code = SUCCESS
 
         # check if pin is initialized
@@ -303,6 +256,13 @@ class GPIO_Pin(object):
 
     # set pin value
     def set_pin_value(self, value):
+        """
+        Sets pin value, by writing to /sys/class/gpio/gpio${pin_num}/value
+        :param direction: Pin value HIGHor LOW
+        :return: error code to indicate it the pin was configured successfully or not
+        :param value:
+        :return:
+        """
 
         err_code = SUCCESS
 
@@ -342,6 +302,10 @@ class GPIO_Pin(object):
 
     # get pin value
     def get_pin_value(self):
+        """
+        Checks pin value, by reading /sys/class/gpio/gpio${bin_num}/value
+        :return: (err_code, value)
+        """
 
         err_code = SUCCESS
         pin_state = LOW
@@ -370,7 +334,14 @@ class GPIO_Pin(object):
 
     # generate PWM signal on the pin
     def pwm_generate(self, frequency, duty_cycle, pulses=0):
-
+        """
+        Generates PWM signal with the given frequency, duty cycle for the given
+        number of pulses
+        :param frequency: Frequency of the PWM
+        :param duty_cycle: Duty cycle of the PWM in % [0:100]
+        :param pulses: Numbe rof pulses to generate (0: means infinite)
+        :return: error code that indicates if the PWM signal was generated successfully
+        """
         err_code = SUCCESS
 
         # check if pin mode is PWM
@@ -428,8 +399,8 @@ class GPIO_Pin(object):
     def pwm_update(self, duty_cycle):
         """
         Updates PWM duty cycle
-        :param duty_cycle:
-        :return:
+        :param duty_cycle: New duty cycle [0:100]
+        :return: 0
         """
 
         total_time = 1.0 / self._frequency
@@ -448,7 +419,10 @@ class GPIO_Pin(object):
 
     # stop PWM signal
     def pwm_stop(self):
-
+        """
+        Stop running PWM signal on the current pin.
+        :return: error_code that indicates if the pwm signal was stopped successfully
+        """
         err_code = SUCCESS
 
         # check if pin mode is PWM
@@ -484,14 +458,18 @@ class GPIO_Pin(object):
 
     # private method for PWM generation
     def __gen_pwm__(self, pulses):
-
+        """
+        A private function that handles PWM generation on the pin
+        :param pulses: number of pulses to generate
+        :return: 0
+        """
         # number of PWM pulses > 0
         if pulses:
 
             while pulses:
 
                 # if up_time > 0
-                if self.__t_up >= 0:
+                if 0 < self.__t_up < 100:
 
                     # set pin high for __t_up time
                     self.set_pin_value(HIGH)
@@ -501,11 +479,16 @@ class GPIO_Pin(object):
                     self.set_pin_value(LOW)
                     time.sleep(self.__t_dwn)
 
-                # if up_time == 0
-                else:
+                elif self.__t_up == 100:
 
-                    log.error("PWM T_on {} is not larger than 0!".format(self.__t_up))
+                    self.set_pin_value(HIGH)
+                    time.sleep(self.__t_up+self.__t_dwn)
+
+                # if up_time == 0
+                elif self.__t_up == 0:
+
                     self.set_pin_value(LOW)
+                    time.sleep(self.__t_up + self.__t_dwn)
 
                 # decrement number of remaining pulses
                 pulses -= 1
@@ -517,7 +500,7 @@ class GPIO_Pin(object):
             while self._pwm_on:
 
                 # if up_time > 0
-                if self.__t_up >= 0:
+                if 0 < self.__t_up < 100:
 
                     # set pin high for __t_up time
                     self.set_pin_value(HIGH)
@@ -527,59 +510,35 @@ class GPIO_Pin(object):
                     self.set_pin_value(LOW)
                     time.sleep(self.__t_dwn)
 
-                # if up_time == 0
-                else:
+                elif self.__t_up == 100:
 
-                    log.error("PWM T_on {} is not larger than 0!".format(self.__t_up))
+                    self.set_pin_value(HIGH)
+                    time.sleep(self.__t_dwn + self.__t_up)
+
+                # if up_time == 0
+                elif self.__t_up == 0:
+
                     self.set_pin_value(LOW)
+                    time.sleep(self.__t_dwn + self.__t_up)
 
         return 0
 
     # check if pin is available in the board
     @staticmethod
     def is_available(pin_number):
-
+        """
+        A static method that checks if a given pin is available in the board's gpio
+        :param pin_number: pin number to check
+        :return: Boolean, True if the pin is available
+        """
         return bool(_AVAILABLE_GPIO.get(pin_number, None))
-
-    # deconfigure (unexport) given pin
-    @staticmethod
-    def pin_deconfig(pin_number):
-        """
-        De-configures given pin
-        :param pin_number:
-        :return: error code that indicates if the pin was de-configured or not = ERR
-        """
-
-        err_code = SUCCESS
-
-        # check if pin is valid
-        if pin_number in _AVAILABLE_GPIO.get(pin_number, None):
-
-            # if pin was unexported
-            if os.system("echo {} > {}".format(pin_number, _GPIO_UNEXPORT_DIR)) == 0:
-
-                log.debug("Pin {} was de-configured successfully.".format(pin_number))
-
-            # if pin was not unexported
-            else:
-
-                log.error("Failed to de-configure pin {}".format(pin_number))
-                err_code = ERR_ERROR
-
-        # if pin is not valid
-        else:
-
-            log.error("Failed to de-configure pin {}".format(pin_number))
-            log.debug("Pin {} is not a valid GPIO pin number!".format(pin_number))
-            err_code = ERR_INVALID_PIN_NUMBER
-
-        return err_code
 
     # check if pin is used (was exported before)
     @staticmethod
     def is_used(pin_number):
         """
-        Checks if the given GPIO Pin is already used (configured)
+        Checks if the given GPIO Pin is already used (configured) by checking if
+        /sys/class/gpio/gpio${pin_number} exists
         :param pin_number:
         :return: (err_code, Boolean)
         error code indicates if the function was run successfully or not
@@ -602,45 +561,6 @@ class GPIO_Pin(object):
             err_code = ERR_INVALID_PIN_NUMBER
 
         return (err_code, used)
-
-    # --------------------------- configure logging ----------------------------
-    @classmethod
-    def log_config(cls, stream, **kwargs):
-
-        verbosity = kwargs.get("verbosity", QUIET)
-        filename = kwargs.get("filename", ".gpiolog")
-
-        # logger for debugging
-        if verbosity == VERBOSE:
-
-            dlevel = log.DEBUG
-
-        elif verbosity == QUIET:
-
-            dlevel = log.INFO
-
-        elif verbosity == WARNINGS:
-
-            dlevel = log.WARNING
-
-        elif verbosity == ERRORS:
-
-            dlevel = log.ERROR
-
-        else:
-
-            dlevel = log.INFO
-
-        if stream == FILE:
-
-            log.basicConfig(filename=filename, filemode='w', format="[GPIO]::%(levelname)s::%(asctime)s::%(message)s",
-                            datefmt="%d/%m/%Y %I:%M:%S", level=dlevel)
-
-        else:
-
-            log.basicConfig(format="[GPIO]::%(levelname)s::%(asctime)s::%(message)s", datefmt="%d/%m/%Y %I:%M:%S",
-                            level=dlevel)
-
 
 if __name__ == "__main__":
 
@@ -685,19 +605,28 @@ if __name__ == "__main__":
 
     # Test 3 : PWM on 4 pins w/ low freq (0.5, 1H)Hz
 
-    GPIO_Pin.log_config(stream=STDOUT, verbosity=QUIET)
+    p0 = GPIO_Pin(16, PWM)
+    p1 = GPIO_Pin(20, PWM)
+    p2 = GPIO_Pin(21, PWM)
 
-    p0 = GPIO_Pin(5, PWM)
-    p1 = GPIO_Pin(12, PWM)
-    p2 = GPIO_Pin(16, PWM)
-    p3 = GPIO_Pin(20, PWM)
-    p4 = GPIO_Pin(21, PWM)
+    p3 = GPIO_Pin(12, PWM)
+
+    p4 = GPIO_Pin(5 , PWM)
+    p5 = GPIO_Pin(6 , PWM)
+
+    p6 = GPIO_Pin(13, PWM)
+    p7 = GPIO_Pin(19, PWM)
+    p8 = GPIO_Pin(26, PWM)
 
     p0.pwm_generate(1, 50, 0)
     p1.pwm_generate(1, 50, 0)
-    p2.pwm_generate(2, 50, 0)
-    p3.pwm_generate(4, 50, 0)
-    p4.pwm_generate(8, 50, 0)
+    p2.pwm_generate(1, 50, 0)
+    p3.pwm_generate(2, 50, 0)
+    p4.pwm_generate(2, 50, 0)
+    p5.pwm_generate(4, 50, 0)
+    p6.pwm_generate(4, 50, 0)
+    p7.pwm_generate(8, 50, 0)
+    p8.pwm_generate(8, 50, 0)
 
     time.sleep(5)
 
@@ -705,13 +634,32 @@ if __name__ == "__main__":
     p2.pwm_update(40)
     p3.pwm_update(60)
     p4.pwm_update(80)
+    p5.pwm_update(20)
+    p6.pwm_update(40)
+    p7.pwm_update(60)
+    p8.pwm_update(80)
 
     time.sleep(5)
 
-    p1.pwm_update(100)
-    p2.pwm_update(100)
-    p3.pwm_update(100)
-    p4.pwm_update(100)
+    p1.pwm_update(20)
+    p2.pwm_update(40)
+    p3.pwm_update(60)
+    p4.pwm_update(80)
+    p5.pwm_update(20)
+    p6.pwm_update(40)
+    p7.pwm_update(60)
+    p8.pwm_update(80)
+
+    time.sleep(5)
+
+    p1.pwm_update(20)
+    p2.pwm_update(40)
+    p3.pwm_update(60)
+    p4.pwm_update(80)
+    p5.pwm_update(20)
+    p6.pwm_update(40)
+    p7.pwm_update(60)
+    p8.pwm_update(80)
 
     time.sleep(5)
 
@@ -719,6 +667,10 @@ if __name__ == "__main__":
     p2.pwm_update(0)
     p3.pwm_update(0)
     p4.pwm_update(0)
+    p5.pwm_update(0)
+    p6.pwm_update(0)
+    p7.pwm_update(0)
+    p8.pwm_update(0)
 
     time.sleep(5)
 
@@ -727,12 +679,20 @@ if __name__ == "__main__":
     p2.pwm_stop()
     p3.pwm_stop()
     p4.pwm_stop()
+    p5.pwm_stop()
+    p6.pwm_stop()
+    p7.pwm_stop()
+    p8.pwm_stop()
 
     while thread.active_count() > 1:
-        time.sleep(1e5)
+        time.sleep(0.05)
 
     p0.deinit_pin()
     p1.deinit_pin()
     p2.deinit_pin()
     p3.deinit_pin()
     p4.deinit_pin()
+    p5.deinit_pin()
+    p6.deinit_pin()
+    p7.deinit_pin()
+    p8.deinit_pin()

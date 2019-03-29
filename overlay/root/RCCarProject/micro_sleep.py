@@ -4,13 +4,17 @@ import time
 
 
 def micro_sleep(micro_sec):
-
+    """
+    Sleeps for a given number of micro-seconds. it uses polling to keep track of the time
+    so it's fairly accurate with large numbers (10+ micro seconds).
+    But because it uses polling, it can't be used extensively with threads.
+    :param micro_sec: number of micro seconds to sleep
+    :return: 0
+    """
     start_time = time.time()
 
-    while time.time() - start_time < micro_sec * (1e-6):
+    while (time.time() - start_time) < (micro_sec * 1e-6):
         pass
-
-    # time.sleep(micro_sec*1e-6)
 
     return 0
 
