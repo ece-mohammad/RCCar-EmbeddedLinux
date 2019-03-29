@@ -182,7 +182,8 @@ class CustomTerm(object):
         # otherwise
         else:
 
-            pass
+            msg_id = COMMAND
+            message = STOP_CAR
 
         return msg_id, message
 
