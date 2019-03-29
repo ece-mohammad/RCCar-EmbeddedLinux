@@ -6,6 +6,7 @@ import gpiolib as gpio
 import time
 import threading as thread
 import logging as log
+from collections import deque
 
 # ---------------- Logging/Debug configurations ---------------
 
@@ -66,6 +67,7 @@ class CarController(object):
 
         self._ultrasonic_handler = None
         self._session = None
+        self._ultrasonic_filter_size = 20.0
 
     def connect_car(self, lm_pin_1, lm_pin_2, lm_pwm_pin, rm_pin_1, rm_pin_2, rm_pwm_pin, us_trig_pin, us_echo_pin,
                     **kwargs):
@@ -325,12 +327,16 @@ class CarController(object):
         :return: error code that indicates if the reading operation was successful
         """
 
+        readings = deque(maxlen=self._ultrasonic_filter_size)
+
         while self._session:
 
             # check if car is connected
             if self._car:
 
-                self._distance_to_object = self._car.get_distance()
+                readings.append(self._car.get_distance())
+
+                self._distance_to_object = sum(readings)/self._ultrasonic_filter_size
 
             else:
 
