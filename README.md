@@ -7,7 +7,7 @@ contains the root file system overlay for buildroot
 ### postbuild
 contains the post build scripts for buildroot
 
-### wifi_ap.comfig
+### wifi_ap.config
 buildroot configurations file, it adds python, hostapd packages to the image, adds root password and enables wchar support among other things
 
 ---------------------------
